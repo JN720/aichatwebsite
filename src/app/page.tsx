@@ -1,9 +1,18 @@
 import Image from 'next/image'
+import Chat from './Chat';
+import Title from './Title';
+import Nav from './Nav';
 
 export default function Home() {
-  return <main className = "p-24">
-    <p className = "text-center">lo i am the lorax i speak for the trees /summon cow</p>
-  </main>
+  return <>
+    <Nav/>
+    <main className = "h-full">
+      <div className = "p-24">
+        <Title/>
+        <Chat/>
+      </div>
+    </main>
+  </>
 }
 
 /*export default function Home() {
