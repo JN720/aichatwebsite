@@ -30,9 +30,9 @@ export default function Chat() {
     };
   
     return (
-      <div className = "container align-bottom">
-        <input className = "text-left" type = "text" placeholder = "Enter text" value = {textInput} onChange = {handleTextChange}/>
-        <button className = "text-center" onClick = {handleButtonClick}>Send</button>
+      <div className = "container items-center">
+        <input className = "m-3 p-1 text-left align-bottom rounded-md bg-blue-800" type = "text" placeholder = "Enter text" value = {textInput} onChange = {handleTextChange}/>
+        <button className = "m-3 p-1 text-center align-bottom rounded-md bg-lime-800 hover:bg-lime-500" onClick = {handleButtonClick}>Send</button>
       </div>
 
     );
