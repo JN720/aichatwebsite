@@ -6,7 +6,10 @@ import { signIn, signOut, useSession } from 'next-auth/react'
 function Login() {
     const {data: session} = useSession();
     if (session) {
-        return <button className = "m-2 p-2 text-2xl rounded-xl align-middle bg-blue-900 hover:bg-blue-700" onClick = {() => signOut()}>Sign Out</button>
+        return <>
+            <a className = "p-4 text-2xl align-middle text-lime-500">Logged in as {session?.user?.name}</a>
+            <button className = "m-2 p-2 text-2xl rounded-xl align-middle bg-blue-900 hover:bg-blue-700" onClick = {() => signOut()}>Sign Out</button>
+        </>
     } else {
         return <button className = "m-2 p-2 text-2xl rounded-xl align-middle bg-blue-900 hover:bg-blue-700" onClick = {() => signIn()}>Sign In</button>
     }
@@ -16,6 +19,5 @@ export default function Nav() {
         <Link className = "p-4 text-2xl align-middle" href = "">I am a link</Link>
         <Link className = "p-4 text-2xl align-middle" href = "">and I am too</Link>
         <Login/>
-        
     </nav>
 }
