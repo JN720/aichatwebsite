@@ -4,7 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 
 import { sql } from '@vercel/postgres';
 
-export const handler = NextAuth({
+const handler = NextAuth({
     providers: [
         GitHubProvider({
             clientId: process.env.GITHUB_ID ?? '',
@@ -24,7 +24,7 @@ export const handler = NextAuth({
                     placeholder: "Enter Password",
                 },
             },
-            authorize: async(credentials) => {
+            async authorize(credentials) {
                 try {
                     const email = credentials?.email;
                     const password = credentials?.password;
@@ -35,7 +35,7 @@ export const handler = NextAuth({
                     const user = {email: rows[0].email, name: rows[0].name, id: '1'}
                     return user;
                 } catch(e) {
-                    return;
+                    return null;
                 }
             }
       })]
