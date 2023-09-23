@@ -7,10 +7,6 @@ export default function Chat() {
     const [textStream, setTextStream] = useState('');
     const apiUrl = 'http://localhost:8000'; // Replace with your API endpoint URL
   
-    const handleTextChange = (event: any) => {
-      setTextInput(event.target.value);
-    };
-  
     const handleButtonClick = () => {
         fetch(apiUrl, {
             method: 'POST',
@@ -30,10 +26,9 @@ export default function Chat() {
     };
   
     return (
-      <div className = "container items-center">
-        <input className = "m-3 p-1 text-left align-bottom rounded-md bg-blue-800" type = "text" placeholder = "Enter text" value = {textInput} onChange = {handleTextChange}/>
-        <button className = "m-3 p-1 text-center align-bottom rounded-md bg-lime-800 hover:bg-lime-500" onClick = {handleButtonClick}>Send</button>
-      </div>
-
-    );
+        <div className = "container items-center">
+            <input className = "m-3 p-1 text-left align-bottom rounded-md bg-blue-800" type = "text" placeholder = "Enter text" value = {textInput} onChange = {(e) => {setTextInput(e.target.value)}}/>
+            <button className = "m-3 p-1 text-center align-bottom rounded-md bg-lime-800 hover:bg-lime-500" onClick = {(handleButtonClick)}>Send</button>
+        </div>
+    )
   }
