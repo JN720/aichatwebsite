@@ -1,10 +1,5 @@
-"use client";
-
-import { useState } from 'react';
-
-export default function Title() {
-    const [title, setTitle] = useState('New Chat');
-    return <div className = "bg-slate-700">
-        <h1 className = "text-center text-5xl p-6">{title}</h1>
+export default function Title(title: string) {
+    return <div className = "flex bg-slate-700 w-5/6 float-right">
+        <h1 className = "text-center text-3xl p-5">{title}</h1>
     </div>
 }

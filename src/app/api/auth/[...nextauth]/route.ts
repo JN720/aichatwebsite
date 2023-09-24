@@ -54,7 +54,6 @@ const handler = NextAuth({
         })],
     callbacks: {
         async jwt({ token, account }) {
-            console.log(token, account)
             if (account) {
                 let authMethod = -1;
                 try {
