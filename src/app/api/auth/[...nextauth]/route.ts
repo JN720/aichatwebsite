@@ -51,7 +51,34 @@ const handler = NextAuth({
                     return null;
                 }
             }
-        })]
+        })],
+    callbacks: {
+        async jwt({ token, account }) {
+            console.log(token, account)
+            if (account) {
+                let authMethod = -1;
+                try {
+                    switch(account?.provider) {
+                        case 'credentials':
+                            return token;
+                        case 'github':
+                            authMethod = 1;
+                            const { rows } = await sql`SELECT id FROM Users WHERE email = ${token.email} AND name = ${token.name} AND auth = 1`;
+                            if (rows[0].email == token.email) {
+                                return token;
+                            }
+                    }
+                } catch(e) {
+                    if (authMethod == -1) {
+                        return token;
+                    }
+                    await sql`INSERT INTO Users(email, name, auth) VALUES(${token.email}, ${token.name}, ${authMethod})`;
+                    return token;
+                }
+            }
+            return token;
+        }
+    }
 })
 
 export {handler as GET, handler as POST};

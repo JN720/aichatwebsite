@@ -14,8 +14,8 @@ function Account() {
         </>
     } else {
         return <>
-            <button className = {linkStyle} onClick = {() => signIn()}>Sign In</button>
-            <Link className = {linkStyle} href = "/signup">Create an Account</Link>
+            <button className = {linkStyle + 'float-right'} onClick = {() => signIn()}>Sign In</button>
+            <Link className = {linkStyle + 'float-right'} href = "/signup">Create an Account</Link>
         </>
     }
 }
