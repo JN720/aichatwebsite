@@ -3,25 +3,27 @@
 import Link from 'next/link';
 import { signIn, signOut, useSession } from 'next-auth/react'
 
+const linkStyle = "m-2 p-2 text-2xl rounded-xl align-middle hover:text-blue-400 ";
+
 function Account() {
     const {data: session} = useSession();
     if (session) {
         return <>
-            <a className = "p-4 text-2xl align-middle text-lime-500">Logged in as {session?.user?.name}</a>
-            <button className = "m-2 p-2 text-2xl rounded-xl align-middle bg-blue-900 hover:bg-blue-700" onClick = {() => signOut()}>Sign Out</button>
+            <a className = "m-2 p-2 text-2xl float-right align-middle text-lime-500">Logged in as <b className = "text-lime-400">{session?.user?.name}</b></a>
+            <button className = {linkStyle + 'float-right'} onClick = {() => signOut()}>Sign Out</button>
         </>
     } else {
         return <>
-            <button className = "m-2 p-2 text-2xl rounded-xl align-middle bg-blue-900 hover:bg-blue-700" onClick = {() => signIn()}>Sign In</button>
-            <Link className = "m-2 p-2 text-2xl rounded-xl align-middle bg-blue-900 hover:bg-blue-700" href = "/signup">Create an Account</Link>
+            <button className = {linkStyle} onClick = {() => signIn()}>Sign In</button>
+            <Link className = {linkStyle} href = "/signup">Create an Account</Link>
         </>
     }
 }
-export default function Nav() {
-    return <nav className = "bg-slate-800 px-12 py-3">
-        <Link className = "p-4 text-2xl align-middle" href = "">I am a link</Link>
-        <Link className = "p-4 text-2xl align-middle" href = "">and I am too</Link>
-        <Account/>
 
+export default function Nav() {
+    return <nav className = "h-16 w-screen bg-slate-800">
+        <Link className = {linkStyle + 'float-left'} href = "">I am a link</Link>
+        <Link className = {linkStyle + 'float-left'} href = "">and I am too</Link>
+        <Account/>
     </nav>
 }
