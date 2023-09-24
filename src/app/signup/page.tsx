@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 async function hash(inputString: string): Promise<string> {
     const encoder = new TextEncoder();
@@ -36,13 +35,12 @@ function Submit(email: string, name: string, password: string, confPass: string)
 }
 
 async function Result(email: string, name: string, password: Promise<string>) {
-    fetch('/api/signup', {
+    fetch('/signup/create', {
         method: 'POST', headers: {'Content-Type': 'application-json'}, 
         body: JSON.stringify({email: email, name: name, password: await password})
-    }).then((response) => {
-        if(response.ok) {
-            console.log(response.status);
-            redirect('http://localhost:3000/api/auth/signin');
+    }).then((res) => {
+        if(res.ok) {
+            window.location.replace('/signup/created');
         }
     });
     
