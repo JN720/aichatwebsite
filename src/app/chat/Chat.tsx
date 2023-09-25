@@ -33,9 +33,13 @@ export default function Chat() {
         const chat = textStream + textInput + ' EOS ';
         setTextStream(chat + ' EOS ...');
         setTextInput('');
-        const res = await axios.post('/chat/chats', {status: status, text: textStream + textInput + ' EOS '})
-        const newMsg: string = res.data.message;
-        setTextStream(chat + newMsg + ' EOS ');
+        try {
+            const res = await axios.post('/chat/chats', {status: status, text: textStream + textInput + ' EOS '})
+            const newMsg: string = res.data.message;
+            setTextStream(chat + newMsg + ' EOS ');
+        } catch(e) {
+            return;
+        }
     };
   
     return <>
