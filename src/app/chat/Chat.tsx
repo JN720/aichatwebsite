@@ -4,55 +4,70 @@ import axios from 'axios';
 import Chats from './chatClass';
 import Title from './Title';
 import { useSession, signIn } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+type chatTitle = {
+    title: string,
+    index: number
+}
 
 export default function Chat() {
     const { data, status } = useSession();
-    let chatInfo = new Chats();
+    const chat = useRef(new Chats());
+    let id: string;
+
+    const [textInput, setTextInput] = useState('');
+    const [current, setCurrent] = useState(0);
+    const [chatTitles, setChatTitles] = useState<chatTitle[]>([{title: 'New Chat', index: 0}])
+    const [loadedChats, setLoadedChats] = useState(true);
+    const [waiting, setWaiting] = useState(false)
 
     useEffect(() => {
         if (status == 'authenticated') {
-            fetch('/chat/chats', {method: 'GET', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ 
-                email: data.user?.email
-            })}).then((res: Response) => res.json()).then((res) => {
-                chatInfo = res;
-            });
+            setLoadedChats(false);
+            const res = axios.post('/chat/chats', {email: data.user?.email}).then((res) => {
+                id = res.data.uid;
+                chat.current.init(res.data.titles, res.data.chats);
+                setChatTitles(chat.current.getArray())
+                setLoadedChats(true);
+            })
         }
     }, [])
 
-    const [textInput, setTextInput] = useState('');
-    const [textStream, setTextStream] = useState('');
-    const [title, setTitle] = useState('New Chat');
-    const [chatNames, setChatNames] = useState([]);
+    
 
     async function handleMessage(e: any) {
         e.preventDefault();
         if (!textInput) {
             return;
         }
-        const chat = textStream + textInput + ' EOS ';
-        setTextStream(chat + ' EOS ...');
+        const cur = current;
+        const currentChat = chat.current.get(cur) + textInput + ' EOS ';
+        chat.current.set(cur, currentChat + ' EOS ...');
         setTextInput('');
         try {
-            const res = await axios.post('/chat/chats', {status: status, text: textStream + textInput + ' EOS '})
+            setWaiting(true);
+            const res = await axios.put('/chat/chats', {status: status, text: currentChat})
             const newMsg: string = res.data.message;
-            setTextStream(chat + newMsg + ' EOS ');
+            chat.current.set(cur, currentChat + newMsg + ' EOS ');
+            setWaiting(false);
         } catch(e) {
             return;
         }
     };
   
     return <>
-        {Title(title)}
+        {Title(chat.current.getTitle(current))}
         <div className = "fixed top-1/6 left-0 w-2/12 h-full bg-slate-600">
-            {status == 'authenticated' ? chatNames.map((chat: string) => {
-                return <button className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {(e) => {setTitle(chat)}}>{chat}</button>
-            }) : <button className = "px-2 py-6 text-3xl w-full text-start bg-slate-700 hover:bg-slate-500" onClick = {() => {signIn()}}>Sign in to save and store multiple chats!</button>}
+            {status == 'authenticated' ? (loadedChats ? chatTitles.map((c) => {
+                return <button className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {setCurrent(c.index)}}>{c.title}</button>
+            }) : <p className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500">Loading Chats...</p>)
+             : <button className = "px-2 py-6 text-3xl w-full text-start bg-slate-700 hover:bg-slate-500" onClick = {() => {signIn()}}>Sign in to save and store multiple chats!</button>}
         </div>
         <div className = "flex flex-col items-center justify-items-end w-full overflow-y-scroll" style = {{height: '55vh'}}>
-            {textStream.split(' EOS ').map((text) => {
+            {chat.current.get(current).split(' EOS ').map((text) => {
                 if (text) {
-                    return <div className = "m-4 w-7/12 rounded-xl bg-slate-600" key = {crypto.randomUUID()}>
+                    return <div className = {'m-4 rounded-xl ' + (text == '...' && waiting ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
                         <p className = "p-4 text-xl">{text}</p>
                     </div>
                 }

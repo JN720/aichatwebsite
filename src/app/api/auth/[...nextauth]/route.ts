@@ -45,7 +45,7 @@ const handler = NextAuth({
                     if (rows[0].password != password) {
                         return null;
                     }
-                    const user = {email: rows[0].email, name: rows[0].name, id: '1'}
+                    const user = {email: email, name: rows[0].name, id: '1'}
                     return user;
                 } catch(e) {
                     return null;
