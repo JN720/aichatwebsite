@@ -14,7 +14,7 @@ type chatTitle = {
 export default function Chat() {
     const { data, status } = useSession();
     const chat = useRef(new Chats());
-    let id: string;
+    let id = '-1';
 
     const [textInput, setTextInput] = useState('');
     const [current, setCurrent] = useState(0);
@@ -27,7 +27,7 @@ export default function Chat() {
             setLoadedChats(false);
             const res = axios.post('/chat/chats', {email: data.user?.email}).then((res) => {
                 id = res.data.uid;
-                chat.current.init(res.data.titles, res.data.chats);
+                chat.current.init(res.data.titles, res.data.chats, res.data.ids);
                 setChatTitles(chat.current.getArray())
                 setLoadedChats(true);
             })
@@ -47,7 +47,10 @@ export default function Chat() {
         setTextInput('');
         try {
             setWaiting(true);
-            const res = await axios.put('/chat/chats', {status: status, text: currentChat})
+            const body = status == 'authenticated' ?
+                {status: status, text: currentChat, id: chat.current.getId(cur), title: chat.current.getTitle(cur)} : 
+                {status: status, text: currentChat}
+            const res = await axios.put('/chat/chats', body) 
             const newMsg: string = res.data.message;
             chat.current.set(cur, currentChat + newMsg + ' EOS ');
             setWaiting(false);

@@ -1,6 +1,7 @@
 class Chat {
     private title: string;
     private msgs: string = '';
+    private id: string = '-1';
     constructor(title: string) {
         this.title = title
     }
@@ -19,6 +20,12 @@ class Chat {
     getMsgs() {
         return this.msgs;
     }
+    setId(id: string) {
+        this.id = id;
+    }
+    getId() {
+        return this.id;
+    }
 }
 
 export default class Chats {
@@ -26,10 +33,11 @@ export default class Chats {
     constructor() {
         this.chats.push(new Chat('New Chat'));
     }
-    init(titles: string[], chats: string[]) {
+    init(titles: string[], chats: string[], ids: string[]) {
         for(let i = 0; i < titles.length; i++) {
             const chat = new Chat(titles[i]);
             chat.set(chats[i]);
+            chat.setId(ids[i])
             this.chats.push(chat);
         }
     }
@@ -66,5 +74,8 @@ export default class Chats {
     }
     getLength(): number {
         return this.chats.length;
+    }
+    getId(index: number) {
+        return this.chats[index].getId();
     }
 }
