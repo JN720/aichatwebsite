@@ -47,6 +47,13 @@ export default class Chats {
     get(index: number): string {
         return this.chats[index].getMsgs();
     }
+    getAll() {
+        let msgs: string[] = [];
+        this.chats.forEach((chat) => {
+            msgs.push(chat.getMsgs());
+        })
+        return msgs;
+    }
     set(index: number, chat: string) {
         return this.chats[index].set(chat);
     }
@@ -80,5 +87,12 @@ export default class Chats {
     }
     getId(index: number) {
         return this.chats[index].getId();
+    }
+    getIds() {
+        let ids: string[] = [];
+        this.chats.forEach((chat) => {
+            ids.push(chat.getId());
+        })
+        return ids;
     }
 }

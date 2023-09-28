@@ -39,8 +39,7 @@ async function addChat(msgs: string, title: string, id: string) {
     return rows[0].cid.toString();
 }
 
-export async function PUT(req: Request) {
-    const request = await req.json();
+ async function put(request: any) {
     const status = await request.status;
     const type = await request.type;
     
@@ -109,7 +108,7 @@ async function getAndCache(email: string) {
     chats = [];
     ids = [];
     try {
-        const { rows } = await client.sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation;`;
+        const { rows } = await client.sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation DESC;`;
         uid = rows[0].uid;
         rows.forEach((chat: any) => {
             titles.push(chat.title);
@@ -129,6 +128,18 @@ async function getAndCache(email: string) {
         return;
     }
     
+}
+
+export async function PUT(req: Request) {
+    const request = await req.json();
+    try {
+        const res = await put(request);
+        return NextResponse.json(res);
+    } catch(e) {
+        await connectClient();
+        const res = await put(request);
+        return NextResponse.json(res);
+    }
 }
 
 export async function POST(req: Request) {

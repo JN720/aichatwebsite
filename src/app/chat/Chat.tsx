@@ -3,7 +3,7 @@
 import axios from 'axios';
 import Chats from './chatClass';
 import { useSession, signIn } from 'next-auth/react';
-import { useState, useEffect, useRef, DO_NOT_USE_OR_YOU_WILL_BE_FIRED_EXPERIMENTAL_REACT_NODES } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import spinner from './titleSpinner.png'
 
@@ -17,7 +17,7 @@ type chatTitle = {
 export default function Chat() {
     const { data, status } = useSession();
     const chat = useRef(new Chats());
-    let id = useRef('-1');
+    const id = useRef('-1');
 
     const [textInput, setTextInput] = useState('');
     const [current, setCurrent] = useState(0);
@@ -53,9 +53,9 @@ export default function Chat() {
     }
 
     async function handleAdd(e: any, title: string, msgs: string) {
+        if (!ephemeral) return;
         setTitleLoading(true);
         setRenaming(false);
-        console.log(id);
         const body = {type: 'add', status: status, id: id.current, title: title, text: msgs};
         try {
             const res = await axios.put('/chat/chats', body);
@@ -69,6 +69,15 @@ export default function Chat() {
         }
         setEphemeral(false);
         setTitleLoading(false);
+    }
+
+    async function handleNew() {
+        const newChat = new Chats();
+        newChat.init(chat.current.getTitles(), chat.current.getAll(), chat.current.getIds());
+        chat.current = newChat;
+        setChatTitles(chat.current.getArray());
+        setEphemeral(true)
+        handleChange(0)
     }
 
     async function handleTitle(e: any, cur: number, title: string) {
@@ -129,6 +138,7 @@ export default function Chat() {
             {titleLoading ? <Image src = {spinner} className = "m-4 ms-0 p-2 animate-spin h-14 w-14" alt = "."/> : null}
         </div>
         <div className = "fixed top-1/6 left-0 w-2/12 h-full bg-slate-600">
+            {status == 'authenticated' && !ephemeral ? <button className = "px-2 py-6 text-xl w-full text-start text-green-400 bg-slate-700 hover:bg-slate-500" onClick = {() => {handleNew()}}>Add New Chat</button> : null}
             {status == 'authenticated' ? (loadedChats ? chatTitles.map((c) => {
                 return <button className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {handleChange(c.index)}}>{c.title}</button>
             }) : <p className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500">Loading Chats...</p>)
