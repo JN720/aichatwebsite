@@ -125,7 +125,13 @@ async function getAndCache(email: string) {
         })
         return {uid: uid, titles: titles, chats: chats, ids: ids};
     } catch(e) {
-        return;
+        try {
+            const { rows } = await client.sql`SELECT uid FROM Users WHERE email = ${email};`;
+            return {uid: rows[0].uid, chats: [], ids: []};
+        } catch(e) {
+            return;
+        }
+        
     }
     
 }
