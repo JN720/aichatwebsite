@@ -61,7 +61,7 @@ const handler = NextAuth({
                             return token;
                         case 'github':
                             authMethod = 1;
-                            const { rows } = await sql`SELECT id FROM Users WHERE email = ${token.email} AND name = ${token.name} AND auth = 1`;
+                            const { rows } = await sql`SELECT id FROM Users WHERE email = ${token.email} AND name = ${token.name} AND auth = 1;`;
                             if (rows[0].email == token.email) {
                                 return token;
                             }
@@ -70,7 +70,7 @@ const handler = NextAuth({
                     if (authMethod == -1) {
                         return token;
                     }
-                    await sql`INSERT INTO Users(email, name, auth) VALUES(${token.email}, ${token.name}, ${authMethod})`;
+                    await sql`INSERT INTO Users(email, name, auth) VALUES(${token.email}, ${token.name}, ${authMethod});`;
                     return token;
                 }
             }

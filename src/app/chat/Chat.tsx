@@ -4,6 +4,8 @@ import axios from 'axios';
 import Chats from './chatClass';
 import { useSession, signIn } from 'next-auth/react';
 import { useState, useEffect, useRef, DO_NOT_USE_OR_YOU_WILL_BE_FIRED_EXPERIMENTAL_REACT_NODES } from 'react';
+import Image from 'next/image';
+import spinner from './titleSpinner.png'
 
 const titleButtonStyle = 'm-4 p-2 text-center text-2xl rounded-2xl ';
 
@@ -15,7 +17,7 @@ type chatTitle = {
 export default function Chat() {
     const { data, status } = useSession();
     const chat = useRef(new Chats());
-    let id = '-1';
+    let id = useRef('-1');
 
     const [textInput, setTextInput] = useState('');
     const [current, setCurrent] = useState(0);
@@ -24,16 +26,17 @@ export default function Chat() {
     const [waiting, setWaiting] = useState(false);
     const [newTitle, setNewTitle] = useState(chat.current.getTitle(current));
     const [renaming, setRenaming] = useState(false);
-    const [ephemeral, setEphemeral] = useState(true)
+    const [ephemeral, setEphemeral] = useState(true);
+    const [titleLoading, setTitleLoading] = useState(false);
 
     useEffect(() => {
         if (status == 'authenticated') {
             setLoadedChats(false);
             const res = axios.post('/chat/chats', {email: data.user?.email}).then((res) => {
-                id = res.data.uid;
+                id.current = res.data.uid;
                 chat.current = new Chats();
                 chat.current.init(res.data.titles, res.data.chats, res.data.ids);
-                setChatTitles(chat.current.getArray())
+                setChatTitles(chat.current.getArray());
                 setLoadedChats(true);
             })
         }
@@ -42,16 +45,44 @@ export default function Chat() {
     async function handleChange(index: number) {
         setNewTitle(chat.current.getTitle(index));
         setCurrent(index);
-        
     }
 
-    async function handleAdd(e: any) {
-
+    async function handleAdd(e: any, title: string, msgs: string) {
+        setTitleLoading(true);
         setRenaming(false);
+        console.log(id);
+        const body = {type: 'add', status: status, id: id.current, title: title, text: msgs};
+        try {
+            const res = await axios.put('/chat/chats', body);
+            if (res.data.message == 'error') {
+                throw 'Update Failed';
+            }
+            chat.current.setTitle(0, title);
+            setChatTitles(chat.current.getArray())
+        } catch(e) {
+            console.log('o no');
+        }
+        setEphemeral(false);
+        setTitleLoading(false);
     }
 
-    async function handleTitle(e: any, cur: number) {
+    async function handleTitle(e: any, cur: number, title: string) {
+        if (!title) return;
+        setTitleLoading(true);
         setRenaming(false);
+        const body = {type: 'title', status: status, id: chat.current.getId(cur), title: title};
+        try {
+            const res = await axios.put('/chat/chats', body);
+            if (res.data.message == 'error') {
+                throw 'Update Failed';
+            }
+            chat.current.setTitle(cur, title);
+            setChatTitles(chat.current.getArray())
+        } catch(e) {
+            console.log('o no')
+        }
+        setTitleLoading(false);
+
     }
 
     async function handleMessage(e: any, cur: number) {
@@ -65,9 +96,9 @@ export default function Chat() {
         try {
             setWaiting(true);
             const body = status == 'authenticated' ?
-                {status: status, text: currentChat, id: chat.current.getId(cur), title: chat.current.getTitle(cur)} : 
-                {status: status, text: currentChat}
-            const res = await axios.put('/chat/chats', body) 
+                {type: 'msg', status: status, text: currentChat, id: chat.current.getId(cur), title: chat.current.getTitle(cur)} : 
+                {type: 'msg', status: status, text: currentChat}
+            const res = await axios.put('/chat/chats', body);
             const newMsg: string = res.data.message;
             chat.current.set(cur, currentChat + newMsg + ' EOS ');
             setWaiting(false);
@@ -81,14 +112,16 @@ export default function Chat() {
             {renaming ? <>
                 <input className = "m-4 p-2 text-start text-3xl rounded-3xl bg-slate-800" defaultValue = {chat.current.getTitle(current)} onChange = {(e) => {setNewTitle(e.target.value)}}/>
                 {ephemeral && !current ?
-                    <button className = {titleButtonStyle + 'bg-fuchsia-700 hover:bg-fuchsia-500'} onClick = {(e) => {handleAdd(e)}}>Add</button> :
-                    <button className = {titleButtonStyle + "bg-blue-700 hover:bg-blue-500"} onClick = {(e) => {handleTitle(e, current)}}>Save</button>
+                    <button className = {titleButtonStyle + 'bg-fuchsia-700 hover:bg-fuchsia-500'} onClick = {(e) => {handleAdd(e, newTitle, chat.current.get(current))}}>Add</button> :
+                    <button className = {titleButtonStyle + (newTitle ? 'bg-blue-700 hover:bg-blue-500' : 'bg-slate-600')} onClick = {(e) => {handleTitle(e, current, newTitle)}}>Save</button>
                 }
-                <button className = {titleButtonStyle + "bg-red-500 hover:bg-red-300"} onClick = {() => {setRenaming(false)}}>Cancel</button>
+                <button className = {titleButtonStyle + 'bg-red-500 hover:bg-red-300'} onClick = {() => {setRenaming(false)}}>Cancel</button>
             </> : <>
                 <h1 className = "m-4 p-2 text-start text-3xl">{chatTitles[current].title}</h1>
                 {status == 'authenticated' ? <button className = {titleButtonStyle + "bg-orange-400 hover:bg-orange-200"} onClick = {() => setRenaming(true)}>{ephemeral && !current ? 'Name and Add' : 'Rename'}</button> : null}
-            </>}
+            </>
+            }
+            {titleLoading ? <Image src = {spinner} className = "m-4 ms-0 p-2 animate-spin h-14 w-14" alt = "."/> : null}
         </div>
         <div className = "fixed top-1/6 left-0 w-2/12 h-full bg-slate-600">
             {status == 'authenticated' ? (loadedChats ? chatTitles.map((c) => {

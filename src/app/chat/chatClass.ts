@@ -58,6 +58,9 @@ export default class Chats {
         this.chats.forEach((chat) => {titles.push(chat.getTitle())})
         return titles;
     }
+    setTitle(index: number, title: string) {
+        this.chats[index].setTitle(title);
+    }
     getRange() {
         let range: number[] = [];
         for (let i = 0; i < this.chats.length; i++) {
