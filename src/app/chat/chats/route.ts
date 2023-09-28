@@ -57,22 +57,22 @@ async function addChat(msgs: string, title: string, id: string) {
                     const title = await request.title;
                     await updateChat(text + msg.data.message + ' EOS ', title, id);
                 }
-                return NextResponse.json({message: msg.data.message});
+                return {message: msg.data.message};
             case 'title':
                 const id = await request.id;
                 const title = await request.title;
                 const result = await updateTitle(title, id);
-                return NextResponse.json({message: result});
+                return {message: result};
             case 'add':
                 const uid = await request.id;
                 const newTitle = await request.title;
                 const newText = await request.text;
                 const cid = await addChat(newText, newTitle, uid);
                 console.log(cid)
-                return NextResponse.json({cid: cid});
+                return {cid: cid};
         }
     } catch(e) {
-        return NextResponse.json({});
+        return {};
     }
 }
 
