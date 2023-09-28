@@ -127,7 +127,8 @@ async function getAndCache(email: string) {
     } catch(e) {
         try {
             const { rows } = await client.sql`SELECT uid FROM Users WHERE email = ${email};`;
-            return {uid: rows[0].uid, chats: [], ids: []};
+            if (rows[0].uid) kv.hset('e:' + email, {id: rows[0].uid});
+            return {uid: rows[0].uid, titles: [], chats: [], ids: []};
         } catch(e) {
             return;
         }

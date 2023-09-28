@@ -3,6 +3,7 @@ import GitHubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials'
 
 import { sql } from '@vercel/postgres';
+import { kv } from '@vercel/kv';
 
 async function hash(inputString: string): Promise<string> {
     const encoder = new TextEncoder();
@@ -40,11 +41,18 @@ const handler = NextAuth({
                     if (password) {
                         password = await hash(password);
                     }
-                    const { rows } = await sql`SELECT name, password FROM Users WHERE email = ${email} AND auth = 0;`;
-                    if (rows[0].password != password) {
+                    const namePass = await kv.hget('e:' + email, 'name').then(async(name) => {
+                        const pass = await kv.hget('e:' + email, 'password');
+                        return [name, pass];
+                    }).catch(async() => {
+                        const { rows } = await sql`SELECT id, name, password FROM Users WHERE email = ${email} AND auth = 0;`;
+                        kv.hset('e:' + email, {id: rows[0].id, name: rows[0].name, password: rows[0].password});
+                        return [rows[0].name, rows[0].password];
+                    })
+                    if (namePass[1] != password) {
                         return null;
                     }
-                    const user = {email: email, name: rows[0].name, id: '1'}
+                    const user = {email: email, name: namePass[0], id: '1'}
                     return user;
                 } catch(e) {
                     return null;
@@ -61,8 +69,9 @@ const handler = NextAuth({
                             return token;
                         case 'github':
                             authMethod = 1;
-                            const { rows } = await sql`SELECT id FROM Users WHERE email = ${token.email} AND name = ${token.name} AND auth = 1;`;
-                            if (rows[0].email == token.email) {
+                            
+                            const id = await checkUser(token.email, token.name, authMethod).catch(() => {throw 'No Info'});
+                            if (id) {
                                 return token;
                             }
                     }
@@ -71,6 +80,7 @@ const handler = NextAuth({
                         return token;
                     }
                     await sql`INSERT INTO Users(email, name, auth) VALUES(${token.email}, ${token.name}, ${authMethod});`;
+                    kv.hset('e:' + token.email, {email: token.email, name: token.name, auth: authMethod});
                     return token;
                 }
             }
@@ -78,5 +88,16 @@ const handler = NextAuth({
         }
     }
 })
+
+async function checkUser(email: string | null | undefined, name: string | null | undefined, authMethod: number) {
+    if (!email || !name) throw 'No Info';
+    try {
+        return kv.hget('e:' + email, 'id');
+    } catch(e) {
+        const { rows } = await sql`SELECT id FROM Users WHERE email = ${email} AND name = ${name} AND auth = ${authMethod};`;
+        if (rows[0].uid) kv.hset('e:' + email, {email: email, name: name, auth: authMethod});
+        return rows[0].uid
+    }
+}
 
 export {handler as GET, handler as POST};
