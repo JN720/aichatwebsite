@@ -35,8 +35,13 @@ export default function Chat() {
             const res = axios.post('/chat/chats', {email: data.user?.email}).then((res) => {
                 id.current = res.data.uid;
                 chat.current = new Chats();
+                if (res.data.titles.length < 1) {
+                    throw 'No Chats';
+                }
                 chat.current.init(res.data.titles, res.data.chats, res.data.ids);
                 setChatTitles(chat.current.getArray());
+                setLoadedChats(true);
+            }).catch(() => {
                 setLoadedChats(true);
             })
         }
