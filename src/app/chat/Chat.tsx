@@ -2,9 +2,10 @@
 
 import axios from 'axios';
 import Chats from './chatClass';
-import Title from './Title';
 import { useSession, signIn } from 'next-auth/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, DO_NOT_USE_OR_YOU_WILL_BE_FIRED_EXPERIMENTAL_REACT_NODES } from 'react';
+
+const titleButtonStyle = 'm-4 p-2 text-center text-2xl rounded-2xl ';
 
 type chatTitle = {
     title: string,
@@ -18,15 +19,19 @@ export default function Chat() {
 
     const [textInput, setTextInput] = useState('');
     const [current, setCurrent] = useState(0);
-    const [chatTitles, setChatTitles] = useState<chatTitle[]>([{title: 'New Chat', index: 0}])
+    const [chatTitles, setChatTitles] = useState<chatTitle[]>([{title: 'New Chat', index: 0}]);
     const [loadedChats, setLoadedChats] = useState(true);
-    const [waiting, setWaiting] = useState(false)
+    const [waiting, setWaiting] = useState(false);
+    const [newTitle, setNewTitle] = useState(chat.current.getTitle(current));
+    const [renaming, setRenaming] = useState(false);
+    const [ephemeral, setEphemeral] = useState(true)
 
     useEffect(() => {
         if (status == 'authenticated') {
             setLoadedChats(false);
             const res = axios.post('/chat/chats', {email: data.user?.email}).then((res) => {
                 id = res.data.uid;
+                chat.current = new Chats();
                 chat.current.init(res.data.titles, res.data.chats, res.data.ids);
                 setChatTitles(chat.current.getArray())
                 setLoadedChats(true);
@@ -34,14 +39,26 @@ export default function Chat() {
         }
     }, [])
 
-    
+    async function handleChange(index: number) {
+        setNewTitle(chat.current.getTitle(index));
+        setCurrent(index);
+        
+    }
 
-    async function handleMessage(e: any) {
+    async function handleAdd(e: any) {
+
+        setRenaming(false);
+    }
+
+    async function handleTitle(e: any, cur: number) {
+        setRenaming(false);
+    }
+
+    async function handleMessage(e: any, cur: number) {
         e.preventDefault();
         if (!textInput) {
             return;
         }
-        const cur = current;
         const currentChat = chat.current.get(cur) + textInput + ' EOS ';
         chat.current.set(cur, currentChat + ' EOS ...');
         setTextInput('');
@@ -60,10 +77,22 @@ export default function Chat() {
     };
   
     return <>
-        {Title(chat.current.getTitle(current))}
+        <div className = "flex bg-slate-700 w-5/6 float-right">
+            {renaming ? <>
+                <input className = "m-4 p-2 text-start text-3xl rounded-3xl bg-slate-800" defaultValue = {chat.current.getTitle(current)} onChange = {(e) => {setNewTitle(e.target.value)}}/>
+                {ephemeral && !current ?
+                    <button className = {titleButtonStyle + 'bg-fuchsia-700 hover:bg-fuchsia-500'} onClick = {(e) => {handleAdd(e)}}>Add</button> :
+                    <button className = {titleButtonStyle + "bg-blue-700 hover:bg-blue-500"} onClick = {(e) => {handleTitle(e, current)}}>Save</button>
+                }
+                <button className = {titleButtonStyle + "bg-red-500 hover:bg-red-300"} onClick = {() => {setRenaming(false)}}>Cancel</button>
+            </> : <>
+                <h1 className = "m-4 p-2 text-start text-3xl">{chatTitles[current].title}</h1>
+                {status == 'authenticated' ? <button className = {titleButtonStyle + "bg-orange-400 hover:bg-orange-200"} onClick = {() => setRenaming(true)}>{ephemeral && !current ? 'Name and Add' : 'Rename'}</button> : null}
+            </>}
+        </div>
         <div className = "fixed top-1/6 left-0 w-2/12 h-full bg-slate-600">
             {status == 'authenticated' ? (loadedChats ? chatTitles.map((c) => {
-                return <button className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {setCurrent(c.index)}}>{c.title}</button>
+                return <button className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {handleChange(c.index)}}>{c.title}</button>
             }) : <p className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500">Loading Chats...</p>)
              : <button className = "px-2 py-6 text-3xl w-full text-start bg-slate-700 hover:bg-slate-500" onClick = {() => {signIn()}}>Sign in to save and store multiple chats!</button>}
         </div>
@@ -78,7 +107,7 @@ export default function Chat() {
         </div>
         <div className = "flex flex-col items-center justify-end">
             <textarea className = "m-3 p-1 text-left text-2xl w-1/3 h-40 rounded-md bg-blue-950 resize-none" rows = {3} placeholder = "Enter text" value = {textInput} onChange = {(e) => {setTextInput(e.target.value)}}/>
-            <button className = "m-1 p-3 text-center text-3xl w-48 rounded-md bg-lime-800 hover:bg-lime-500" onClick = {(e) => handleMessage(e)}>Send</button>
+            <button className = "m-1 p-3 text-center text-3xl w-48 rounded-md bg-lime-800 hover:bg-lime-500" onClick = {(e) => handleMessage(e, current)}>Send</button>
         </div>
     </>
   }
