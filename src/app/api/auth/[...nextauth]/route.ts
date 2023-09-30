@@ -104,7 +104,7 @@ async function checkUser(email: string | null | undefined, name: string | null |
     } catch(e) {
         const { rows } = await sql`SELECT id FROM Users WHERE email = ${email} AND auth = ${authMethod};`;
         if (rows[0].id) {
-            kv.hset('e:' + email, {email: email, name: name, auth: authMethod});
+            kv.hset('e:' + email, {id: rows[0].id, email: email, name: name, auth: authMethod});
         } else {
             throw 'Database Down';
         }

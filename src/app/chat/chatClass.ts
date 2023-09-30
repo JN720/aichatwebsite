@@ -36,7 +36,10 @@ export default class Chats {
     init(titles: string[], chats: string[], ids: string[]) {
         const errs = [false];
         const pres = ['']
-        for(let i = 0; i < titles.length; i++) {
+        for(let i = 0; i < ids.length; i++) {
+            if (!ids[i]) {
+                break;
+            }
             const chat = new Chat(titles[i]);
             chat.set(chats[i]);
             chat.setId(ids[i])

@@ -72,11 +72,8 @@ async function getAndCache(email: string) {
         }
         const ids = await kv.lrange('i:' + uid, 0, -1);
         for(let i = 0; i < ids.length; i++) {
-            const msgs = await kv.hget('c:' + ids[i], 'msgs')
-            if (typeof msgs != 'string') {
-                throw 'Cache Miss';
-            }
-            chats.push(msgs);
+            const msgs: string | null = await kv.hget('c:' + ids[i], 'msgs');
+            chats.push(msgs ?? '');
             const title = await kv.hget('c:' + ids[i], 'title');
             if (typeof title != 'string') {
                 throw 'Cache Miss';
@@ -101,6 +98,9 @@ async function getAndCache(email: string) {
     kv.hset('e:' + email, {id: uid});
     if (rows[0].uid) {
         rows.forEach((chat: any) => {
+            if (!chat.cid) {
+                return;
+            }
             titles.push(chat.title);
             chats.push(chat.msgs ?? '');
             ids.push(chat.cid);

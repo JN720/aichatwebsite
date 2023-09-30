@@ -43,9 +43,9 @@ export default function Chat() {
                 id.current = res.data.uid;
                 chat.current = new Chats();
                 if (!id) {
-                    throw 'No Chats';
+                    throw 'ID Fetch Failed';
                 }
-                const { errs, pres } = chat.current.init(res.data.titles, res.data.chats, res.data.ids);
+                const { errs, pres } = chat.current.init(res.data.titles ?? [], res.data.chats ?? [], res.data.ids ?? []);
                 setMsgErr(errs);
                 preErr.current = pres;
                 setChatTitles(chat.current.getArray());
