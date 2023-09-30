@@ -34,17 +34,32 @@ export default class Chats {
         this.chats.push(new Chat('New Chat'));
     }
     init(titles: string[], chats: string[], ids: string[]) {
+        const errs = [false];
+        const pres = ['']
         for(let i = 0; i < titles.length; i++) {
             const chat = new Chat(titles[i]);
             chat.set(chats[i]);
             chat.setId(ids[i])
             this.chats.push(chat);
+            errs.push(false);
+            pres.push('')
         }
+        return {errs: errs, pres: pres};
     }
     add(index: number, msg: string) {
         this.chats[index].add(msg);
     }
-    get(index: number): string {
+    get(index: number) {
+        const msgs = this.chats[index].getMsgs().split(' EOS ');
+        msgs.pop();
+        let rvalue = [];
+        for (let i = 0; i < msgs.length - 1; i++) {
+            rvalue.push({text: msgs[i], isLast: false});
+        }
+        rvalue.push({text: msgs[msgs.length - 1], isLast: true});
+        return rvalue;
+    }
+    getString(index: number) {
         return this.chats[index].getMsgs();
     }
     getAll() {

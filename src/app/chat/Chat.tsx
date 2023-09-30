@@ -14,6 +14,11 @@ type chatTitle = {
     index: number
 }
 
+type chatMessage = {
+    text: string,
+    isLast: boolean
+}
+
 export default function Chat() {
     const { data, status } = useSession();
     const chat = useRef(new Chats());
@@ -28,6 +33,8 @@ export default function Chat() {
     const [renaming, setRenaming] = useState(false);
     const [ephemeral, setEphemeral] = useState(true);
     const [titleLoading, setTitleLoading] = useState(false);
+    const [msgErr, setMsgErr] = useState([false]);
+    const preErr = useRef(['']);
 
     async function getChats() {
         if (status == 'authenticated') {
@@ -38,7 +45,9 @@ export default function Chat() {
                 if (!id) {
                     throw 'No Chats';
                 }
-                chat.current.init(res.data.titles, res.data.chats, res.data.ids);
+                const { errs, pres } = chat.current.init(res.data.titles, res.data.chats, res.data.ids);
+                setMsgErr(errs);
+                preErr.current = pres;
                 setChatTitles(chat.current.getArray());
                 setLoadedChats(1);
             }).catch(() => {
@@ -107,11 +116,12 @@ export default function Chat() {
 
     }
 
-    async function handleMessage(e: any, cur: number) {
-        if (!textInput) {
+    async function handleMessage(cur: number, text: string) {
+        if (!textInput || waiting) {
             return;
         }
-        const currentChat = chat.current.get(cur) + textInput + ' EOS ';
+        const currentChat = chat.current.getString(cur) + text + ' EOS ';
+        preErr.current[cur] = currentChat;
         chat.current.set(cur, currentChat + ' EOS ...');
         setTextInput('');
         try {
@@ -122,11 +132,15 @@ export default function Chat() {
             const res = await axios.put('/chat/chats', body);
             const newMsg: string = res.data.message;
             chat.current.set(cur, currentChat + newMsg + ' EOS ');
+            const newMsgErr = msgErr;
+            newMsgErr[cur] = false;
+            setMsgErr(newMsgErr);
             setWaiting(false);
         } catch(e) {
-            //error handling goes here
-            console.log('o no handleMessage')
-            return;
+            const newMsgErr = msgErr;
+            newMsgErr[cur] = true;
+            setMsgErr(newMsgErr);
+            setWaiting(false);
         }
     };
   
@@ -135,7 +149,7 @@ export default function Chat() {
             {renaming ? <>
                 <input className = "m-4 p-2 text-start text-3xl rounded-3xl bg-slate-800" defaultValue = {chat.current.getTitle(current)} onChange = {(e) => {setNewTitle(e.target.value)}}/>
                 {ephemeral && !current ?
-                    <button className = {titleButtonStyle + 'bg-fuchsia-700 hover:bg-fuchsia-500'} onClick = {(e) => {handleAdd(e, newTitle, chat.current.get(current))}}>Add</button> :
+                    <button className = {titleButtonStyle + 'bg-fuchsia-700 hover:bg-fuchsia-500'} onClick = {(e) => {handleAdd(e, newTitle, chat.current.getString(current))}}>Add</button> :
                     <button className = {titleButtonStyle + (newTitle ? 'bg-blue-700 hover:bg-blue-500' : 'bg-slate-600')} onClick = {(e) => {handleTitle(e, current, newTitle)}}>Save</button>
                 }
                 <button className = {titleButtonStyle + 'bg-red-500 hover:bg-red-300'} onClick = {() => {setRenaming(false)}}>Cancel</button>
@@ -155,17 +169,18 @@ export default function Chat() {
             {loadedChats == 2 ? <button className = "px-2 py-6 text-3xl w-full text-start text-red-500 bg-slate-700 hover:bg-slate-500" onClick = {() => {getChats()}}>Failed to load chats, click to retry</button> : null}
         </div>
         <div className = "flex flex-col items-center justify-items-end w-full overflow-y-scroll" style = {{height: '55vh'}}>
-            {chat.current.get(current).split(' EOS ').map((text) => {
-                if (text) {
-                    return <div className = {'m-4 rounded-xl ' + (text == '...' && waiting ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
-                        <p className = "p-4 text-xl">{text}</p>
-                    </div>
+            {chat.current.get(current).map((msg: chatMessage) => {
+                if (msg.text) {
+                    return msg.isLast && msgErr[current] ? <button className = "m-4 p-4 rounded-xl text-xl bg-red-600 hover:bg-red-400" onClick = {() => handleMessage(current, preErr.current[current])} key = {crypto.randomUUID()}>Error, Click to Retry</button> :
+                        <div className = {'m-4 rounded-xl ' + (msg.isLast && waiting && !msgErr ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
+                            <p className = "p-4 text-xl">{msg.text}</p>
+                        </div>
                 }
             })}
         </div>
         <div className = "flex flex-col items-center justify-end">
             <textarea className = "m-3 p-1 text-left text-2xl w-1/3 h-40 rounded-md bg-blue-950 resize-none" rows = {3} placeholder = "Enter text" value = {textInput} onChange = {(e) => {setTextInput(e.target.value)}}/>
-            <button className = "m-1 p-3 text-center text-3xl w-48 rounded-md bg-lime-800 hover:bg-lime-500" onClick = {(e) => handleMessage(e, current)}>Send</button>
+            <button className = "m-1 p-3 text-center text-3xl w-48 rounded-md bg-lime-800 hover:bg-lime-500" onClick = {(e) => handleMessage(current, textInput)}>Send</button>
         </div>
     </>
   }

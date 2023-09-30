@@ -21,6 +21,9 @@ async function updateTitle(title: string, id: string) {
 
 async function addChat(msgs: string, title: string, id: string) {
     const { rows } = await sql`INSERT INTO Chats(title, msgs, uid) VALUES(${title}, ${msgs}, ${parseInt(id)}) RETURNING cid;`;
+    if (!rows[0].cid) {
+        throw 'Failed to Add';
+    }
     kv.lpush('i:' + id, rows[0].cid);
     kv.hset('c:' + rows[0].cid, {msgs: msgs, title: title});
     return rows[0].cid.toString();
@@ -96,16 +99,16 @@ async function getAndCache(email: string) {
         throw 'Database Failed';
     }
     kv.hset('e:' + email, {id: uid});
-    if (rows[0].ids) {
+    if (rows[0].uid) {
         rows.forEach((chat: any) => {
             titles.push(chat.title);
-            chats.push(chat.msgs);
+            chats.push(chat.msgs ?? '');
             ids.push(chat.cid);
-            kv.hset('c:' + chat.cid, {msgs: chat.msgs, title: chat.title});
+            kv.hset('c:' + chat.cid, {msgs: chat.msgs ?? '', title: chat.title});
             kv.expire('c:' + chat.cid, parseInt(process.env.TTL ?? TTL.toString()));
         })
         kv.del('i:' + uid);
-        kv.rpush('i:' + uid, ids);
+        kv.lpush('i:' + uid, ids);
         kv.expire('i:' + uid, parseInt(process.env.TTL ?? TTL.toString()));
     }
     return {uid: uid, titles: titles, chats: chats, ids: ids};
