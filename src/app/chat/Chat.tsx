@@ -108,7 +108,6 @@ export default function Chat() {
     }
 
     async function handleMessage(e: any, cur: number) {
-        e.preventDefault();
         if (!textInput) {
             return;
         }
@@ -117,7 +116,7 @@ export default function Chat() {
         setTextInput('');
         try {
             setWaiting(true);
-            const body = status == 'authenticated' ?
+            const body = status == 'authenticated' && (current == 0 && ephemeral) ?
                 {type: 'msg', status: status, text: currentChat, id: chat.current.getId(cur), title: chat.current.getTitle(cur)} : 
                 {type: 'msg', status: status, text: currentChat}
             const res = await axios.put('/chat/chats', body);
