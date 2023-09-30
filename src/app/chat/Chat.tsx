@@ -1,6 +1,6 @@
 'use client';
 
-import axios from 'axios';
+const axios = require('axios');
 import Chats from './chatClass';
 import { useSession, signIn } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
@@ -32,10 +32,10 @@ export default function Chat() {
     async function getChats() {
         if (status == 'authenticated') {
             setLoadedChats(0);
-            const res = axios.post('/chat/chats', {email: data.user?.email}).then((res) => {
+            const res = axios.post('/chat/chats', {email: data.user?.email}).then((res: any) => {
                 id.current = res.data.uid;
                 chat.current = new Chats();
-                if (res.data.titles.length < 1) {
+                if (!id) {
                     throw 'No Chats';
                 }
                 chat.current.init(res.data.titles, res.data.chats, res.data.ids);
@@ -43,7 +43,7 @@ export default function Chat() {
                 setLoadedChats(1);
             }).catch(() => {
                 //error handling goes here
-                console.log('o no')
+                console.log('o no getChats')
                 setLoadedChats(2);
             })
         }
@@ -72,7 +72,7 @@ export default function Chat() {
             setChatTitles(chat.current.getArray())
         } catch(e) {
             //error handling goes here
-            console.log('o no');
+            console.log('o no handleAdd');
         }
         setEphemeral(false);
         setTitleLoading(false);
@@ -101,7 +101,7 @@ export default function Chat() {
             setChatTitles(chat.current.getArray())
         } catch(e) {
             //error handling goes here
-            console.log('o no')
+            console.log('o no handleTitle')
         }
         setTitleLoading(false);
 
@@ -116,16 +116,18 @@ export default function Chat() {
         setTextInput('');
         try {
             setWaiting(true);
-            const body = status == 'authenticated' && (current == 0 && ephemeral) ?
+            const body = status == 'authenticated' && current && !ephemeral ?
                 {type: 'msg', status: status, text: currentChat, id: chat.current.getId(cur), title: chat.current.getTitle(cur)} : 
-                {type: 'msg', status: status, text: currentChat}
+                {type: 'msg', status: 'unauthenticated', text: currentChat}
             const res = await axios.put('/chat/chats', body);
+            console.log(res)
             const newMsg: string = res.data.message;
+            console.log(newMsg)
             chat.current.set(cur, currentChat + newMsg + ' EOS ');
             setWaiting(false);
         } catch(e) {
             //error handling goes here
-            console.log('o no')
+            console.log('o no handleMessage')
             return;
         }
     };

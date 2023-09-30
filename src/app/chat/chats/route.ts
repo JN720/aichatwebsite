@@ -1,16 +1,16 @@
-import axios from 'axios';
+const axios = require('axios');
 import { kv } from "@vercel/kv";
-import { db } from "@vercel/postgres";
+import { VercelPoolClient, db, sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
 
-let client: any;
+let client: VercelPoolClient;
 const TTL = 3600;
 
 db.on('connect', () => {
     console.log(':D');
 })
 
-db.on('error', () => {
+db.on('remove', () => {
     console.log('D;');
 })
 
@@ -33,7 +33,7 @@ async function updateTitle(title: string, id: string) {
 }
 
 async function addChat(msgs: string, title: string, id: string) {
-    const { rows } = await client.sql`INSERT INTO Chats(title, msgs, uid) VALUES(${title}, ${msgs}, ${parseInt(id)}) RETURNING cid;`;
+    const { rows } = await /*client.*/sql`INSERT INTO Chats(title, msgs, uid) VALUES(${title}, ${msgs}, ${parseInt(id)}) RETURNING cid;`;
     kv.lpush('i:' + id, rows[0].cid);
     kv.hset('c:' + rows[0].cid, {msgs: msgs, title: title});
     return rows[0].cid.toString();
@@ -51,7 +51,7 @@ async function addChat(msgs: string, title: string, id: string) {
                 form.append('knowledge', 'Knowledge: You are helpful.');
                 form.append('dialog', text);
                 const msg = await axios.post(process.env.GEN_URL ?? 'http://localhost:8000', form);
-                if (status == 'authenticated') {
+                if (status === 'authenticated') {
                     const id = await request.id;
                     const title = await request.title;
                     await updateChat(text + msg.data.message + ' EOS ', title, id);
@@ -66,9 +66,7 @@ async function addChat(msgs: string, title: string, id: string) {
                 const uid = await request.id;
                 const newTitle = await request.title;
                 const newText = await request.text;
-                console.log(uid);
                 const cid = await addChat(newText, newTitle, uid);
-                console.log(cid)
                 return {cid: cid};
         }
     } catch(e) {
@@ -81,9 +79,11 @@ async function getAndCache(email: string) {
     let chats: string[] = [];
     let ids: string[] = [];
     try {
-        const uid = await kv.hget('e:' + email, 'id');
-        if (!uid) throw 'Cache Miss'
-        const ids = await kv.lrange('i:' + await uid, 0, -1);
+        const uid: number | null = await kv.hget('e:' + email, 'id');
+        if (!uid || uid < 1) {
+            throw 'Cache Miss';
+        }
+        const ids = await kv.lrange('i:' + uid, 0, -1);
         for(let i = 0; i < ids.length; i++) {
             const msgs = await kv.hget('c:' + ids[i], 'msgs')
             if (typeof msgs != 'string') {
@@ -94,13 +94,12 @@ async function getAndCache(email: string) {
             if (typeof title != 'string') {
                 throw 'Cache Miss';
             }
-            titles.push(msgs);
-            if (i == ids.length) {
-                console.log('cache Hit')
+            titles.push(title);
+            if (i == ids.length - 1) {
+                console.log('Cache Hit');
                 return {uid: uid, titles: titles, chats: chats, ids: ids};
             }
         }
-        
     } catch(e) {
         console.log('Cache Miss');
     }
@@ -108,10 +107,11 @@ async function getAndCache(email: string) {
     chats = [];
     ids = [];
     try {
-        const { rows } = await client.sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users LEFT JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation DESC;`;
+        const { rows } = await /*client.*/sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation DESC;`;
         const uid = rows[0].uid;
-        console.log(rows[0])
-        console.log(uid)
+        if (!uid) {
+            throw 'Database Failed';
+        }
         rows.forEach((chat: any) => {
             titles.push(chat.title);
             chats.push(chat.msgs);
@@ -128,15 +128,16 @@ async function getAndCache(email: string) {
         return {uid: uid, titles: titles, chats: chats, ids: ids};
     } catch(e) {
         try {
+            /*console.log('uh oh')
             const { rows } = await client.sql`SELECT id FROM Users WHERE email = ${email};`;
-            console.log(rows[0])
+            console.log(rows)
             if (rows[0].id) kv.hset('e:' + email, {id: rows[0].id.toString()});
-            return {uid: rows[0].id.toString(), titles: [], chats: [], ids: []};
+            return {uid: rows[0].id.toString(), titles: [], chats: [], ids: []};*/
         } catch(e) {
-            console.log('Database Down');
-            return {};
+            
         }
-        
+        console.log('Database Down');
+        return {};
     }
     
 }
@@ -156,6 +157,7 @@ export async function PUT(req: Request) {
 export async function POST(req: Request) {
     const request = await req.json();
     const email = await request.email;
+    console.log(request)
     try {
         const res = await getAndCache(email);
         console.log(res)
