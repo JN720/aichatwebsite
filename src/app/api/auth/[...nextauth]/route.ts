@@ -43,7 +43,9 @@ const handler = NextAuth({
                     }
                     const namePass = await kv.hget('e:' + email, 'name').then(async(name) => {
                         const pass = await kv.hget('e:' + email, 'password');
-                        if(!name || !pass) throw 'Cache Miss';
+                        if (!name || !pass) {
+                            throw 'Cache Miss';
+                        }
                         return [name, pass];
                     }).catch(async() => {
                         const { rows } = await sql`SELECT id, name, password FROM Users WHERE email = ${email} AND auth = 0;`;
@@ -70,7 +72,6 @@ const handler = NextAuth({
                             return token;
                         case 'github':
                             authMethod = 1;
-                            
                             const id = await checkUser(token.email, token.name, authMethod).catch(() => {throw 'No Info'});
                             if (id) {
                                 return token;
@@ -91,19 +92,23 @@ const handler = NextAuth({
 })
 
 async function checkUser(email: string | null | undefined, name: string | null | undefined, authMethod: number) {
-    if (!email || !name) throw 'No Info';
+    if (!email) {
+        throw 'No Info';
+    }
     try {
         const id = await kv.hget('e:' + email, 'id');
-        if (!id) throw 'Cache Miss';
+        if (!id) {
+         throw 'Cache Miss';
+        }
         return id;
     } catch(e) {
-        const { rows } = await sql`SELECT id FROM Users WHERE email = ${email} AND name = ${name} AND auth = ${authMethod};`;
-        if (rows[0].uid) {
+        const { rows } = await sql`SELECT id FROM Users WHERE email = ${email} AND auth = ${authMethod};`;
+        if (rows[0].id) {
             kv.hset('e:' + email, {email: email, name: name, auth: authMethod});
         } else {
             throw 'Database Down';
         }
-        return rows[0].uid;
+        return rows[0].id;
     }
 }
 
