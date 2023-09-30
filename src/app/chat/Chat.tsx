@@ -117,13 +117,17 @@ export default function Chat() {
     }
 
     async function handleMessage(cur: number, text: string) {
-        if (!textInput || waiting) {
+        if (!text || waiting) {
             return;
         }
-        const currentChat = chat.current.getString(cur) + text + ' EOS ';
-        preErr.current[cur] = currentChat;
+        const err = msgErr[cur];
+        const currentChat = err ? chat.current.getString(cur).substring(0, chat.current.getString(cur).length - 8) : chat.current.getString(cur) + (err ? '' : text + ' EOS ');
+        preErr.current[cur] = text;
         chat.current.set(cur, currentChat + ' EOS ...');
         setTextInput('');
+        const newMsgErr = [...msgErr];
+        newMsgErr[cur] = false;
+        setMsgErr(newMsgErr);
         try {
             setWaiting(true);
             const body = status == 'authenticated' && current && !ephemeral ?
@@ -131,13 +135,14 @@ export default function Chat() {
                 {type: 'msg', status: 'unauthenticated', text: currentChat}
             const res = await axios.put('/chat/chats', body);
             const newMsg: string = res.data.message;
+            if (!newMsg) {
+                throw 'Message Failed';
+            }
             chat.current.set(cur, currentChat + newMsg + ' EOS ');
-            const newMsgErr = msgErr;
-            newMsgErr[cur] = false;
-            setMsgErr(newMsgErr);
+            
             setWaiting(false);
         } catch(e) {
-            const newMsgErr = msgErr;
+            const newMsgErr = [...msgErr];
             newMsgErr[cur] = true;
             setMsgErr(newMsgErr);
             setWaiting(false);
@@ -170,10 +175,10 @@ export default function Chat() {
         </div>
         <div className = "flex flex-col items-center justify-items-end w-full overflow-y-scroll" style = {{height: '55vh'}}>
             {chat.current.get(current).map((msg: chatMessage) => {
-                if (msg.text) {
+                if (msg.text || msgErr[current] || waiting) {
                     return msg.isLast && msgErr[current] ? <button className = "m-4 p-4 rounded-xl text-xl bg-red-600 hover:bg-red-400" onClick = {() => handleMessage(current, preErr.current[current])} key = {crypto.randomUUID()}>Error, Click to Retry</button> :
-                        <div className = {'m-4 rounded-xl ' + (msg.isLast && waiting && !msgErr ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
-                            <p className = "p-4 text-xl">{msg.text}</p>
+                        <div className = {'m-4 rounded-xl ' + (msg.isLast && waiting ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
+                            <p className = "p-4 text-xl">{msg.isLast && waiting ? '...' : msg.text}</p>
                         </div>
                 }
             })}

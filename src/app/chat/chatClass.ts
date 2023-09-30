@@ -56,7 +56,9 @@ export default class Chats {
         for (let i = 0; i < msgs.length - 1; i++) {
             rvalue.push({text: msgs[i], isLast: false});
         }
-        rvalue.push({text: msgs[msgs.length - 1], isLast: true});
+        if (msgs.length) {
+            rvalue.push({text: msgs[msgs.length - 1], isLast: true});
+        }
         return rvalue;
     }
     getString(index: number) {
