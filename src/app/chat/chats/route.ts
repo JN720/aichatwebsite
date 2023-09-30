@@ -42,7 +42,6 @@ async function addChat(msgs: string, title: string, id: string) {
  async function put(request: any) {
     const status = await request.status;
     const type = await request.type;
-    
     try {
         switch (type) {
             case 'msg':
@@ -67,6 +66,7 @@ async function addChat(msgs: string, title: string, id: string) {
                 const uid = await request.id;
                 const newTitle = await request.title;
                 const newText = await request.text;
+                console.log(uid);
                 const cid = await addChat(newText, newTitle, uid);
                 console.log(cid)
                 return {cid: cid};
@@ -80,9 +80,9 @@ async function getAndCache(email: string) {
     let titles: string[] = [];
     let chats: string[] = [];
     let ids: string[] = [];
-    let uid = '';
     try {
         const uid = await kv.hget('e:' + email, 'id');
+        if (!uid) throw 'Cache Miss'
         const ids = await kv.lrange('i:' + await uid, 0, -1);
         for(let i = 0; i < ids.length; i++) {
             const msgs = await kv.hget('c:' + ids[i], 'msgs')
@@ -96,20 +96,22 @@ async function getAndCache(email: string) {
             }
             titles.push(msgs);
             if (i == ids.length) {
-                console.log('cache hit')
+                console.log('cache Hit')
                 return {uid: uid, titles: titles, chats: chats, ids: ids};
             }
         }
         
     } catch(e) {
-        console.error('Cache Error');
+        console.log('Cache Miss');
     }
     titles = [];
     chats = [];
     ids = [];
     try {
-        const { rows } = await client.sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation DESC;`;
-        uid = rows[0].uid;
+        const { rows } = await client.sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users LEFT JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation DESC;`;
+        const uid = rows[0].uid;
+        console.log(rows[0])
+        console.log(uid)
         rows.forEach((chat: any) => {
             titles.push(chat.title);
             chats.push(chat.msgs);
@@ -126,11 +128,13 @@ async function getAndCache(email: string) {
         return {uid: uid, titles: titles, chats: chats, ids: ids};
     } catch(e) {
         try {
-            const { rows } = await client.sql`SELECT uid FROM Users WHERE email = ${email};`;
-            if (rows[0].uid) kv.hset('e:' + email, {id: rows[0].uid});
-            return {uid: rows[0].uid, titles: [], chats: [], ids: []};
+            const { rows } = await client.sql`SELECT id FROM Users WHERE email = ${email};`;
+            console.log(rows[0])
+            if (rows[0].id) kv.hset('e:' + email, {id: rows[0].id.toString()});
+            return {uid: rows[0].id.toString(), titles: [], chats: [], ids: []};
         } catch(e) {
-            return;
+            console.log('Database Down');
+            return {};
         }
         
     }
@@ -154,10 +158,12 @@ export async function POST(req: Request) {
     const email = await request.email;
     try {
         const res = await getAndCache(email);
+        console.log(res)
         return NextResponse.json(res);
     } catch(e) {
         await connectClient();
         const res = await getAndCache(email);
+        console.log(res)
         return NextResponse.json(res);
     }
 }

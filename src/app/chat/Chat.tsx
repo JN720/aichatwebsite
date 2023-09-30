@@ -42,6 +42,8 @@ export default function Chat() {
                 setChatTitles(chat.current.getArray());
                 setLoadedChats(true);
             }).catch(() => {
+                //error handling goes here
+                console.log('o no')
                 setLoadedChats(true);
             })
         }
@@ -65,6 +67,7 @@ export default function Chat() {
             chat.current.setTitle(0, title);
             setChatTitles(chat.current.getArray())
         } catch(e) {
+            //error handling goes here
             console.log('o no');
         }
         setEphemeral(false);
@@ -93,6 +96,7 @@ export default function Chat() {
             chat.current.setTitle(cur, title);
             setChatTitles(chat.current.getArray())
         } catch(e) {
+            //error handling goes here
             console.log('o no')
         }
         setTitleLoading(false);
@@ -117,6 +121,8 @@ export default function Chat() {
             chat.current.set(cur, currentChat + newMsg + ' EOS ');
             setWaiting(false);
         } catch(e) {
+            //error handling goes here
+            console.log('o no')
             return;
         }
     };
