@@ -93,7 +93,7 @@ async function getAndCache(email: string) {
     titles = [];
     chats = [];
     ids = [];
-    const { rows } = await sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation DESC;`;
+    const { rows } = await sql`SELECT Users.id AS uid, Chats.cid AS cid, Chats.title AS title, Chats.msgs AS msgs FROM Users LEFT JOIN Chats ON Users.id = Chats.uid WHERE Users.email = ${email} ORDER BY Chats.creation DESC;`;
     const uid = rows[0].uid;
     if (!uid) {
         throw 'Database Failed';
