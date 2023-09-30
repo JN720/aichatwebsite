@@ -22,17 +22,16 @@ export default function Chat() {
     const [textInput, setTextInput] = useState('');
     const [current, setCurrent] = useState(0);
     const [chatTitles, setChatTitles] = useState<chatTitle[]>([{title: 'New Chat', index: 0}]);
-    const [loadedChats, setLoadedChats] = useState(true);
+    const [loadedChats, setLoadedChats] = useState(0);
     const [waiting, setWaiting] = useState(false);
     const [newTitle, setNewTitle] = useState(chat.current.getTitle(current));
     const [renaming, setRenaming] = useState(false);
     const [ephemeral, setEphemeral] = useState(true);
     const [titleLoading, setTitleLoading] = useState(false);
-    const [refetch, setRefetch] = useState(false);
 
-    useEffect(() => {
+    async function getChats() {
         if (status == 'authenticated') {
-            setLoadedChats(false);
+            setLoadedChats(0);
             const res = axios.post('/chat/chats', {email: data.user?.email}).then((res) => {
                 id.current = res.data.uid;
                 chat.current = new Chats();
@@ -41,13 +40,17 @@ export default function Chat() {
                 }
                 chat.current.init(res.data.titles, res.data.chats, res.data.ids);
                 setChatTitles(chat.current.getArray());
-                setLoadedChats(true);
+                setLoadedChats(1);
             }).catch(() => {
                 //error handling goes here
                 console.log('o no')
-                setLoadedChats(true);
+                setLoadedChats(2);
             })
         }
+    }
+
+    useEffect(() => {
+        getChats();
     }, [])
 
     async function handleChange(index: number) {
@@ -139,7 +142,7 @@ export default function Chat() {
                 <button className = {titleButtonStyle + 'bg-red-500 hover:bg-red-300'} onClick = {() => {setRenaming(false)}}>Cancel</button>
             </> : <>
                 <h1 className = "m-4 p-2 text-start text-3xl">{chatTitles[current].title}</h1>
-                {status == 'authenticated' ? <button className = {titleButtonStyle + "bg-orange-400 hover:bg-orange-200"} onClick = {() => setRenaming(true)}>{ephemeral && !current ? 'Name and Add' : 'Rename'}</button> : null}
+                {status == 'authenticated' && loadedChats == 1 ? <button className = {titleButtonStyle + "bg-orange-400 hover:bg-orange-200"} onClick = {() => setRenaming(true)}>{ephemeral && !current ? 'Name and Add' : 'Rename'}</button> : null}
             </>
             }
             {titleLoading ? <Image src = {spinner} className = "m-4 ms-0 p-2 animate-spin h-14 w-14" alt = "."/> : null}
@@ -150,6 +153,7 @@ export default function Chat() {
                 return <button className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {handleChange(c.index)}}>{c.title}</button>
             }) : <p className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500">Loading Chats...</p>)
              : <button className = "px-2 py-6 text-3xl w-full text-start bg-slate-700 hover:bg-slate-500" onClick = {() => {signIn()}}>Sign in to save and store multiple chats!</button>}
+            {loadedChats == 2 ? <button className = "px-2 py-6 text-3xl w-full text-start text-red-500 bg-slate-700 hover:bg-slate-500" onClick = {() => {getChats()}}>Failed to load chats, click to retry</button> : null}
         </div>
         <div className = "flex flex-col items-center justify-items-end w-full overflow-y-scroll" style = {{height: '55vh'}}>
             {chat.current.get(current).split(' EOS ').map((text) => {
