@@ -29,36 +29,33 @@ async function addChat(msgs: string, title: string, id: string) {
  async function put(request: any) {
     const status = await request.status;
     const type = await request.type;
-    try {
-        switch (type) {
-            case 'msg':
-                const text = await request.text;
-                const form = new FormData();
-                form.append('instruction', 'Instruction: Respond intelligently.');
-                form.append('knowledge', 'Knowledge: You are helpful.');
-                form.append('dialog', text);
-                const msg = await axios.post(process.env.GEN_URL ?? 'http://localhost:8000', form);
-                if (status === 'authenticated') {
-                    const id = await request.id;
-                    const title = await request.title;
-                    await updateChat(text + msg.data.message + ' EOS ', title, id);
-                }
-                return {message: msg.data.message};
-            case 'title':
+    switch (type) {
+        case 'msg':
+            const text = await request.text;
+            const form = new FormData();
+            form.append('instruction', 'Instruction: Respond intelligently.');
+            form.append('knowledge', 'Knowledge: You are helpful.');
+            form.append('dialog', text);
+            const msg = await axios.post(process.env.GEN_URL ?? 'http://localhost:8000', form);
+            if (status === 'authenticated') {
                 const id = await request.id;
                 const title = await request.title;
-                const result = await updateTitle(title, id);
-                return {message: result};
-            case 'add':
-                const uid = await request.id;
-                const newTitle = await request.title;
-                const newText = await request.text;
-                const cid = await addChat(newText, newTitle, uid);
-                return {cid: cid};
-        }
-    } catch(e) {
-        return {};
+                await updateChat(text + msg.data.message + ' EOS ', title, id);
+            }
+            return {message: msg.data.message};
+        case 'title':
+            const id = await request.id;
+            const title = await request.title;
+            const result = await updateTitle(title, id);
+            return {message: result};
+        case 'add':
+            const uid = await request.id;
+            const newTitle = await request.title;
+            const newText = await request.text;
+            const cid = await addChat(newText, newTitle, uid);
+            return {cid: cid};
     }
+    throw 'Invalid Method';
 }
 
 async function getAndCache(email: string) {
@@ -98,19 +95,19 @@ async function getAndCache(email: string) {
     if (!uid) {
         throw 'Database Failed';
     }
-    rows.forEach((chat: any) => {
-        titles.push(chat.title);
-        chats.push(chat.msgs);
-        ids.push(chat.cid);
-    })
-    kv.del('i:' + uid);
-    kv.rpush('i:' + uid, ids);
-    kv.expire('i:' + uid, parseInt(process.env.TTL ?? TTL.toString()));
     kv.hset('e:' + email, {id: uid});
-    rows.forEach((chat: any) => {
-        kv.hset('c:' + chat.cid, {msgs: chat.msgs, title: chat.title});
-        kv.expire('c:' + chat.cid, parseInt(process.env.TTL ?? TTL.toString()));
-    })
+    if (rows[0].ids) {
+        rows.forEach((chat: any) => {
+            titles.push(chat.title);
+            chats.push(chat.msgs);
+            ids.push(chat.cid);
+            kv.hset('c:' + chat.cid, {msgs: chat.msgs, title: chat.title});
+            kv.expire('c:' + chat.cid, parseInt(process.env.TTL ?? TTL.toString()));
+        })
+        kv.del('i:' + uid);
+        kv.rpush('i:' + uid, ids);
+        kv.expire('i:' + uid, parseInt(process.env.TTL ?? TTL.toString()));
+    }
     return {uid: uid, titles: titles, chats: chats, ids: ids};
 }
 
