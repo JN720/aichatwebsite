@@ -22,8 +22,8 @@ function Account() {
 
 export default function Nav() {
     return <nav className = "h-16 w-screen bg-slate-800">
-        <Link className = {linkStyle + 'float-left'} href = "">I am a link</Link>
-        <Link className = {linkStyle + 'float-left'} href = "">and I am too</Link>
+        <Link className = {linkStyle + 'float-left'} href = "/">Home</Link>
+        <Link className = {linkStyle + 'float-left'} href = "">idk where should this link go</Link>
         <Account/>
     </nav>
 }

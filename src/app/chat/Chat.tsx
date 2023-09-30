@@ -28,6 +28,7 @@ export default function Chat() {
     const [renaming, setRenaming] = useState(false);
     const [ephemeral, setEphemeral] = useState(true);
     const [titleLoading, setTitleLoading] = useState(false);
+    const [refetch, setRefetch] = useState(false);
 
     useEffect(() => {
         if (status == 'authenticated') {
