@@ -23,7 +23,6 @@ export default function Chat() {
     const { data, status } = useSession();
     const chat = useRef(new Chats());
     const id = useRef('-1');
-    const displayMsgs = useRef<HTMLDivElement | null>(null);
 
     const [textInput, setTextInput] = useState('');
     const [current, setCurrent] = useState(0);
@@ -35,6 +34,7 @@ export default function Chat() {
     const [ephemeral, setEphemeral] = useState(true);
     const [titleLoading, setTitleLoading] = useState(false);
     const [msgErr, setMsgErr] = useState([false]);
+    const [titleErr, setTitleErr] = useState(false);
     const preErr = useRef(['']);
 
     async function getChats() {
@@ -65,15 +65,19 @@ export default function Chat() {
 
     async function handleChange(index: number) {
         setNewTitle(chat.current.getTitle(index));
+        setTitleErr(false);
         setCurrent(index);
     }
 
     async function handleAdd(e: any, title: string, msgs: string) {
-        if (!ephemeral) return;
+        if (!ephemeral || !title) {
+            return;
+        }
         setTitleLoading(true);
         setRenaming(false);
         const body = {type: 'add', status: status, id: id.current, title: title, text: msgs};
         try {
+            setTitleErr(false);
             const res = await axios.put('/chat/chats', body);
             if (res.data.message == 'error') {
                 throw 'Update Failed';
@@ -81,8 +85,7 @@ export default function Chat() {
             chat.current.setTitle(0, title);
             setChatTitles(chat.current.getArray())
         } catch(e) {
-            //error handling goes here
-            console.log('o no handleAdd');
+            setTitleErr(true);
         }
         setEphemeral(false);
         setTitleLoading(false);
@@ -103,6 +106,7 @@ export default function Chat() {
         setRenaming(false);
         const body = {type: 'title', status: status, id: chat.current.getId(cur), title: title};
         try {
+            setTitleErr(false);
             const res = await axios.put('/chat/chats', body);
             if (res.data.message == 'error') {
                 throw 'Update Failed';
@@ -110,7 +114,7 @@ export default function Chat() {
             chat.current.setTitle(cur, title);
             setChatTitles(chat.current.getArray())
         } catch(e) {
-            //error handling goes here
+            setTitleErr(true);
             console.log('o no handleTitle')
         }
         setTitleLoading(false);
@@ -148,9 +152,6 @@ export default function Chat() {
             setMsgErr(newMsgErr);
             setWaiting(false);
         }
-        if (displayMsgs.current) {
-            displayMsgs.current.scrollTop = displayMsgs.current?.scrollHeight;
-        }
     };
   
     return <>
@@ -158,30 +159,31 @@ export default function Chat() {
             {renaming ? <>
                 <input className = "m-4 p-2 text-start text-3xl rounded-3xl bg-slate-800" defaultValue = {chat.current.getTitle(current)} onChange = {(e) => {setNewTitle(e.target.value)}}/>
                 {ephemeral && !current ?
-                    <button className = {titleButtonStyle + 'bg-fuchsia-700 hover:bg-fuchsia-500'} onClick = {(e) => {handleAdd(e, newTitle, chat.current.getString(current))}}>Add</button> :
+                    <button className = {titleButtonStyle + (newTitle ? 'bg-fuchsia-700 hover:bg-fuchsia-500' : 'bg-slate-600')} onClick = {(e) => {handleAdd(e, newTitle, chat.current.getString(current))}}>Add</button> :
                     <button className = {titleButtonStyle + (newTitle ? 'bg-blue-700 hover:bg-blue-500' : 'bg-slate-600')} onClick = {(e) => {handleTitle(e, current, newTitle)}}>Save</button>
                 }
                 <button className = {titleButtonStyle + 'bg-red-500 hover:bg-red-300'} onClick = {() => {setRenaming(false)}}>Cancel</button>
             </> : <>
                 <h1 className = "m-4 p-2 text-start text-3xl">{chatTitles[current].title}</h1>
-                {status == 'authenticated' && loadedChats == 1 ? <button className = {titleButtonStyle + "bg-orange-400 hover:bg-orange-200"} onClick = {() => setRenaming(true)}>{ephemeral && !current ? 'Name and Add' : 'Rename'}</button> : null}
+                {status == 'authenticated' && loadedChats == 1 ? <button className = {titleButtonStyle + 'bg-orange-400 hover:bg-orange-200'} onClick = {() => setRenaming(true)}>{ephemeral && !current ? 'Name and Add' : 'Rename'}</button> : null}
             </>
             }
             {titleLoading ? <Image src = {spinner} className = "m-4 ms-0 p-2 animate-spin h-14 w-14" alt = "."/> : null}
+            {titleErr ? <p className = "m-4 p-2 text-start text-2x1 text-red-500">Error, Try Again</p> : null}
         </div>
         <div className = "fixed top-1/6 left-0 w-2/12 h-full bg-slate-600">
             {status == 'authenticated' && !ephemeral ? <button className = "px-2 py-7 text-xl w-full text-start text-green-400 bg-slate-700 hover:bg-slate-500" onClick = {() => {handleNew()}}>Add New Chat</button> : null}
             {status == 'authenticated' ? (loadedChats ? chatTitles.map((c) => {
                 return <button className = "px-2 py-7 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {handleChange(c.index)}}>{c.title}</button>
             }) : <p className = "px-2 py-7 text-xl w-full text-start bg-slate-700 hover:bg-slate-500">Loading Chats...</p>)
-             : <button className = "px-2 py-6 text-3xl w-full text-start bg-slate-700 hover:bg-slate-500" onClick = {() => {signIn()}}>Sign in to save and store multiple chats!</button>}
+             : <button className = "px-2 py-6 text-xl w-full h-full text-start bg-slate-700 hover:bg-slate-500" onClick = {() => {signIn()}}>Sign in to save and store multiple chats!</button>}
             {loadedChats == 2 ? <button className = "px-2 py-6 text-3xl w-full text-start text-red-500 bg-slate-700 hover:bg-slate-500" onClick = {() => {getChats()}}>Failed to load chats, click to retry</button> : null}
         </div>
         <div className = "flex flex-col items-center justify-items-end w-full overflow-y-scroll" style = {{height: '65vh'}}>
             {chat.current.get(current).map((msg: chatMessage) => {
                 if (msg.text || msgErr[current] || waiting) {
                     return msg.isLast && msgErr[current] ? <button className = "m-4 p-4 rounded-xl text-xl bg-red-600 hover:bg-red-400" onClick = {() => handleMessage(current, preErr.current[current])} key = {crypto.randomUUID()}>Error, Click to Retry</button> :
-                        <div ref = {displayMsgs} className = {'m-4 rounded-xl ' + (msg.isLast && waiting ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
+                        <div className = {'m-4 rounded-xl ' + (msg.isLast && waiting ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
                             <p className = "p-4 text-xl">{msg.isLast && waiting ? '...' : msg.text}</p>
                         </div>
                 }
