@@ -40,10 +40,10 @@ async function addChat(msgs: string, title: string, id: string) {
             form.append('knowledge', 'Knowledge: You are helpful.');
             form.append('dialog', text);
             const msg = await axios.post(process.env.GEN_URL ?? 'http://localhost:8000', form);
-            if (status === 'authenticated') {
+            if (status == 'authenticated') {
                 const id = await request.id;
                 const title = await request.title;
-                await updateChat(text + msg.data.message + ' EOS ', title, id);
+                updateChat(text + msg.data.message + ' EOS ', title, id);
             }
             return {message: msg.data.message};
         case 'title':

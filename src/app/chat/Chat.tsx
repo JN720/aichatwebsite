@@ -117,6 +117,7 @@ export default function Chat() {
     }
 
     async function handleMessage(cur: number, text: string) {
+        console.log(id.current)
         if (!text || waiting) {
             return;
         }
@@ -130,7 +131,7 @@ export default function Chat() {
         setMsgErr(newMsgErr);
         try {
             setWaiting(true);
-            const body = status == 'authenticated' && current && !ephemeral ?
+            const body = status == 'authenticated' && (current || !ephemeral) ?
                 {type: 'msg', status: status, text: currentChat, id: chat.current.getId(cur), title: chat.current.getTitle(cur)} : 
                 {type: 'msg', status: 'unauthenticated', text: currentChat}
             const res = await axios.put('/chat/chats', body);
