@@ -23,6 +23,7 @@ export default function Chat() {
     const { data, status } = useSession();
     const chat = useRef(new Chats());
     const id = useRef('-1');
+    const displayMsgs = useRef<HTMLDivElement | null>(null);
 
     const [textInput, setTextInput] = useState('');
     const [current, setCurrent] = useState(0);
@@ -117,7 +118,6 @@ export default function Chat() {
     }
 
     async function handleMessage(cur: number, text: string) {
-        console.log(id.current)
         if (!text || waiting) {
             return;
         }
@@ -148,6 +148,9 @@ export default function Chat() {
             setMsgErr(newMsgErr);
             setWaiting(false);
         }
+        if (displayMsgs.current) {
+            displayMsgs.current.scrollTop = displayMsgs.current?.scrollHeight;
+        }
     };
   
     return <>
@@ -167,26 +170,28 @@ export default function Chat() {
             {titleLoading ? <Image src = {spinner} className = "m-4 ms-0 p-2 animate-spin h-14 w-14" alt = "."/> : null}
         </div>
         <div className = "fixed top-1/6 left-0 w-2/12 h-full bg-slate-600">
-            {status == 'authenticated' && !ephemeral ? <button className = "px-2 py-6 text-xl w-full text-start text-green-400 bg-slate-700 hover:bg-slate-500" onClick = {() => {handleNew()}}>Add New Chat</button> : null}
+            {status == 'authenticated' && !ephemeral ? <button className = "px-2 py-7 text-xl w-full text-start text-green-400 bg-slate-700 hover:bg-slate-500" onClick = {() => {handleNew()}}>Add New Chat</button> : null}
             {status == 'authenticated' ? (loadedChats ? chatTitles.map((c) => {
-                return <button className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {handleChange(c.index)}}>{c.title}</button>
-            }) : <p className = "px-2 py-6 text-xl w-full text-start bg-slate-700 hover:bg-slate-500">Loading Chats...</p>)
+                return <button className = "px-2 py-7 text-xl w-full text-start bg-slate-700 hover:bg-slate-500" key = {crypto.randomUUID()} onClick = {() => {handleChange(c.index)}}>{c.title}</button>
+            }) : <p className = "px-2 py-7 text-xl w-full text-start bg-slate-700 hover:bg-slate-500">Loading Chats...</p>)
              : <button className = "px-2 py-6 text-3xl w-full text-start bg-slate-700 hover:bg-slate-500" onClick = {() => {signIn()}}>Sign in to save and store multiple chats!</button>}
             {loadedChats == 2 ? <button className = "px-2 py-6 text-3xl w-full text-start text-red-500 bg-slate-700 hover:bg-slate-500" onClick = {() => {getChats()}}>Failed to load chats, click to retry</button> : null}
         </div>
-        <div className = "flex flex-col items-center justify-items-end w-full overflow-y-scroll" style = {{height: '55vh'}}>
+        <div className = "flex flex-col items-center justify-items-end w-full overflow-y-scroll" style = {{height: '65vh'}}>
             {chat.current.get(current).map((msg: chatMessage) => {
                 if (msg.text || msgErr[current] || waiting) {
                     return msg.isLast && msgErr[current] ? <button className = "m-4 p-4 rounded-xl text-xl bg-red-600 hover:bg-red-400" onClick = {() => handleMessage(current, preErr.current[current])} key = {crypto.randomUUID()}>Error, Click to Retry</button> :
-                        <div className = {'m-4 rounded-xl ' + (msg.isLast && waiting ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
+                        <div ref = {displayMsgs} className = {'m-4 rounded-xl ' + (msg.isLast && waiting ? 'bg-slate-400' : 'w-7/12 bg-slate-600')} key = {crypto.randomUUID()}>
                             <p className = "p-4 text-xl">{msg.isLast && waiting ? '...' : msg.text}</p>
                         </div>
                 }
             })}
         </div>
         <div className = "flex flex-col items-center justify-end">
-            <textarea className = "m-3 p-1 text-left text-2xl w-1/3 h-40 rounded-md bg-blue-950 resize-none" rows = {3} placeholder = "Enter text" value = {textInput} onChange = {(e) => {setTextInput(e.target.value)}}/>
-            <button className = "m-1 p-3 text-center text-3xl w-48 rounded-md bg-lime-800 hover:bg-lime-500" onClick = {(e) => handleMessage(current, textInput)}>Send</button>
+            <div className = "w-full h-full flex flex-none place-items-center justify-center">
+                <textarea className = "m-3 p-1 text-left text-2xl w-1/3 rounded-md bg-blue-950 resize-none" rows = {4} placeholder = "Enter text" value = {textInput} onChange = {(e) => {setTextInput(e.target.value)}}/>
+                <button className = "m-3 p-3 text-center text-3xl w-1/12 h-1/3 rounded-md bg-lime-800 hover:bg-lime-500" onClick = {(e) => handleMessage(current, textInput)}>Send</button>
+            </div>    
         </div>
     </>
   }

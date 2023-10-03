@@ -66,16 +66,19 @@ async function getAndCache(email: string) {
     let chats: string[] = [];
     let ids: string[] = [];
     try {
-        const uid: number | null = await kv.hget('e:' + email, 'id');
-        if (!uid || uid < 1) {
+        const uid: string | null = await kv.hget('e:' + email, 'id');
+        if (!uid) {
             throw 'Cache Miss';
         }
-        const ids = await kv.lrange('i:' + uid, 0, -1);
+        ids = await kv.lrange('i:' + uid, 0, -1);
         for(let i = 0; i < ids.length; i++) {
             const msgs: string | null = await kv.hget('c:' + ids[i], 'msgs');
+            if (msgs == null) {
+                throw 'Cache Miss';
+            }
             chats.push(msgs ?? '');
-            const title = await kv.hget('c:' + ids[i], 'title');
-            if (typeof title != 'string') {
+            const title: string | null = await kv.hget('c:' + ids[i], 'title');
+            if (!title) {
                 throw 'Cache Miss';
             }
             titles.push(title);
@@ -105,11 +108,11 @@ async function getAndCache(email: string) {
             chats.push(chat.msgs ?? '');
             ids.push(chat.cid);
             kv.hset('c:' + chat.cid, {msgs: chat.msgs ?? '', title: chat.title});
-            kv.expire('c:' + chat.cid, parseInt(process.env.TTL ?? TTL.toString()));
+            //kv.expire('c:' + chat.cid, parseInt(process.env.TTL ?? TTL.toString()));
         })
         kv.del('i:' + uid);
-        kv.lpush('i:' + uid, ids);
-        kv.expire('i:' + uid, parseInt(process.env.TTL ?? TTL.toString()));
+        kv.lpush('i:' + uid, ...ids);
+        //kv.expire('i:' + uid, parseInt(process.env.TTL ?? TTL.toString()));
     }
     return {uid: uid, titles: titles, chats: chats, ids: ids};
 }
