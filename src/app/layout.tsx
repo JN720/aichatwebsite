@@ -7,8 +7,8 @@ import SessionProvider from './SessionProvider';
 const font = IBM_Plex_Sans({ subsets: ['latin'] , display: 'swap', weight: ['100', '200', '300', '400', '500', '600', '700']})
 
 export const metadata: Metadata = {
-  title: 'Jsan Website',
-  description: 'A collaborative effort between 2 professional idiots',
+  title: 'Jsan AI Chat',
+  description: 'An effort from one professional idiot to another.',
 }
 
 export default async function RootLayout({
